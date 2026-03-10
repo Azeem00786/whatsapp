@@ -9,9 +9,10 @@ class Sender {
   /**
    * Sends the invitation message to a phone number.
    * @param {string} phone
+   * @param {function} onProgress
    * @returns {Promise<boolean>}
    */
-  async sendInvitation(phone) {
+  async sendInvitation(phone, onProgress = () => {}) {
     const page = whatsapp.getPage();
     const defaultMessage = `Hi 👋
 I saw you in the *All India Jobs Grp -1* and wanted to share my WhatsApp channel:
@@ -32,6 +33,7 @@ Thanks & take care! 😊`;
     try {
       console.log(`[Sender] Using message: "${message.substring(0, 30)}..."`);
       console.log(`[Sender] Starting to send to ${phone}...`);
+      onProgress(10, "Initializing...");
 
       // Navigate to a blank page first to ensure a CLEAN load of the next chat URL
       // This prevents WhatsApp SPA from ignoring the fragment/parameter change
@@ -41,6 +43,7 @@ Thanks & take care! 😊`;
 
       // Navigate to the chat URL
       console.log(`[Sender] Navigating to ${phone} chat...`);
+      onProgress(33, "Navigating...");
       await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
 
       try {
@@ -56,6 +59,7 @@ Thanks & take care! 😊`;
         );
 
         // Wait a few seconds for WhatsApp to pre-fill the text
+        onProgress(66, "Processing...");
         await new Promise((resolve) => setTimeout(resolve, 5000));
 
         const sendButtonSelector =
@@ -74,6 +78,7 @@ Thanks & take care! 😊`;
         }
 
         // Final wait to confirm message is sent
+        onProgress(100, "Sent!");
         await new Promise((resolve) => setTimeout(resolve, 3000));
 
         console.log(`[Sender] Successfully processed sending for ${phone}`);

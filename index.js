@@ -99,6 +99,7 @@ app.get("/status", (req, res) => {
   res.json({
     whatsapp: whatsapp.getPage() ? "Initialized" : "Not Initialized",
     processor: chunkProcessor.status() ? "Running" : "Stopped",
+    activeTask: chunkProcessor.activeTask,
     queue: queue.getStatus(),
   });
 });

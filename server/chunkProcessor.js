@@ -9,6 +9,11 @@ const config = require("../config");
 class ChunkProcessor {
   constructor() {
     this.isRunning = false;
+    this.activeTask = {
+      phone: null,
+      progress: 0,
+      status: "Idle",
+    };
   }
 
   /**
@@ -25,7 +30,18 @@ class ChunkProcessor {
       for (const phone of chunk) {
         if (!this.isRunning) break;
 
-        const success = await sender.sendInvitation(phone);
+        this.activeTask.phone = phone;
+        this.activeTask.progress = 0;
+        this.activeTask.status = "Starting";
+
+        const success = await sender.sendInvitation(
+          phone,
+          (progress, status) => {
+            this.activeTask.progress = progress;
+            this.activeTask.status = status;
+          },
+        );
+
         if (success) {
           queue.markAsSent(phone);
           logger.log(phone, "SUCCESS");
@@ -33,6 +49,10 @@ class ChunkProcessor {
           queue.markAsFailed(phone);
           logger.log(phone, "FAILED");
         }
+
+        this.activeTask.phone = null;
+        this.activeTask.progress = 0;
+        this.activeTask.status = "Idle";
 
         // Delay between messages in a chunk
         console.log(

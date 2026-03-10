@@ -66,6 +66,23 @@
         <!-- 2. Automation Control -->
         <div class="card col-4">
           <h2><i data-lucide="zap"></i> 2. Control Center</h2>
+
+          <div class="progress-container" id="progressContainer">
+            <div class="progress-bar" id="progressBar"></div>
+          </div>
+          <div
+            id="taskStatus"
+            style="
+              font-size: 12px;
+              color: var(--text-muted);
+              text-align: center;
+              margin-bottom: 15px;
+              display: none;
+            "
+          >
+            Processing...
+          </div>
+
           <div class="status-grid" id="statusGrid">
             <div class="status-item">
               <span id="pendingCount" class="status-value val-pending">0</span>
@@ -80,6 +97,24 @@
             <div class="status-item">
               <span id="failedCount" class="status-value val-failed">0</span>
               <span class="status-label">Failed</span>
+            </div>
+          </div>
+
+          <div id="campaignFinished" class="campaign-finished">
+            <i
+              data-lucide="check-circle"
+              style="
+                color: var(--primary);
+                width: 24px;
+                height: 24px;
+                margin-bottom: 8px;
+              "
+            ></i>
+            <div style="font-weight: 600; font-size: 14px">
+              Campaign Finished
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted)">
+              All messages processed.
             </div>
           </div>
 
@@ -218,9 +253,33 @@
       </div>
     </div>
 
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
     <script>
       // Initialize Lucide Icons
       lucide.createIcons();
+
+      // Notification System
+      function showToast(message, type = "info", icon = "info") {
+        const container = document.getElementById("toast-container");
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+              <i data-lucide="${icon}"></i>
+              <span>${message}</span>
+          `;
+        container.appendChild(toast);
+        lucide.createIcons();
+
+        setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateX(50px)";
+          setTimeout(() => toast.remove(), 300);
+        }, 4000);
+      }
+
+      let wasRunning = false;
 
       async function updateStatus() {
         try {
@@ -228,15 +287,66 @@
           const status = await res.json();
 
           // Update Counts
-          document.getElementById("pendingCount").innerText =
-            status.queue.pending;
-          document.getElementById("sentCount").innerText = status.queue.sent;
-          document.getElementById("failedCount").innerText =
-            status.queue.failed;
+          const pending = status.queue.pending;
+          const sent = status.queue.sent;
+          const failed = status.queue.failed;
+          const total = pending + sent + failed;
+
+          document.getElementById("pendingCount").innerText = pending;
+          document.getElementById("sentCount").innerText = sent;
+          document.getElementById("failedCount").innerText = failed;
+
+          // Update Progress Bar & Task Status
+          const progressContainer =
+            document.getElementById("progressContainer");
+          const progressBar = document.getElementById("progressBar");
+          const taskStatus = document.getElementById("taskStatus");
+          const campaignFinished = document.getElementById("campaignFinished");
+
+          if (
+            status.processor === "Running" &&
+            status.activeTask &&
+            status.activeTask.phone
+          ) {
+            // Show granular progress for active contact
+            progressContainer.style.display = "block";
+            taskStatus.style.display = "block";
+
+            const pct = status.activeTask.progress || 10;
+            progressBar.style.width = `${pct}%`;
+            taskStatus.innerHTML = `Sending to <strong>${status.activeTask.phone}</strong>: ${status.activeTask.status || "Starting"}...`;
+
+            // Change color for active task
+            progressBar.style.opacity = "1";
+          } else if (total > 0 && sent + failed > 0) {
+            // Show overall progress if not actively sending right now
+            progressContainer.style.display = "block";
+            taskStatus.style.display = "none";
+            const percentage = ((sent + failed) / total) * 100;
+            progressBar.style.width = `${percentage}%`;
+            progressBar.style.opacity = "0.7"; // Slightly dim overall progress
+          } else {
+            progressContainer.style.display = "none";
+            taskStatus.style.display = "none";
+          }
 
           // Update Control Buttons
           const isRunning = status.processor === "Running";
-          const hasPending = status.queue.pending > 0;
+
+          // Detection for run completion
+          if (wasRunning && !isRunning && pending === 0 && total > 0) {
+            campaignFinished.style.display = "block";
+            showToast(
+              "Campaign Successfully Completed!",
+              "success",
+              "check-circle",
+            );
+          } else if (pending > 0 || isRunning) {
+            campaignFinished.style.display = "none";
+          }
+          wasRunning = isRunning;
+
+          const hasPending = pending > 0;
 
           document.getElementById("startBtn").disabled =
             isRunning || !hasPending;
@@ -245,6 +355,16 @@
           // Update Badges
           const waStatusBadge = document.getElementById("waStatusBadge");
           if (status.whatsapp === "Initialized") {
+            if (
+              waStatusBadge.innerText === "WhatsApp Offline" ||
+              waStatusBadge.innerText === "Checking Connection..."
+            ) {
+              showToast(
+                "WhatsApp Connected & Ready",
+                "success",
+                "message-square",
+              );
+            }
             waStatusBadge.innerText = "WhatsApp Online";
             waStatusBadge.className = "status-badge status-connected";
           } else {
@@ -272,12 +392,7 @@
         });
         const data = await res.json();
 
-        const statusEl = document.getElementById("saveStatus");
-        statusEl.style.opacity = "1";
-        setTimeout(() => {
-          statusEl.style.opacity = "0";
-        }, 2000);
-
+        showToast("Message content saved", "success", "save");
         updateStatus();
       }
 
@@ -292,6 +407,7 @@
         });
         const data = await res.json();
         document.getElementById("manualInput").value = "";
+        showToast(`Added ${data.count} numbers to queue`, "info", "user-plus");
         updateStatus();
       }
 
@@ -309,12 +425,18 @@
         });
         const data = await res.json();
         fileInput.value = "";
+        showToast(
+          `Bulk upload successful: ${data.count} numbers`,
+          "info",
+          "upload-cloud",
+        );
         updateStatus();
       }
 
       async function startSending() {
         const res = await fetch("/start-sending", { method: "POST" });
         const data = await res.json();
+        showToast("Automation campaign started", "info", "zap");
         updateStatus();
         fetchLogs();
       }
@@ -322,6 +444,7 @@
       async function stopSending() {
         const res = await fetch("/stop-sending", { method: "POST" });
         const data = await res.json();
+        showToast("Campaign stopped by user", "error", "square");
         updateStatus();
       }
 
