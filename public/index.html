@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WA Automate | Premium Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo-container">
+          <div class="logo-icon">
+            <i
+              data-lucide="message-square"
+              style="color: #000; width: 24px; height: 24px"
+            ></i>
+          </div>
+          <div>
+            <h1>WA Automate</h1>
+            <p class="tagline">Scale your reach with smart automation</p>
+          </div>
+        </div>
+        <div class="system-status">
+          <span id="waStatusBadge" class="status-badge status-disconnected"
+            >Checking Connection...</span
+          >
+        </div>
+      </header>
+
+      <div class="dashboard-grid">
+        <!-- 1. Message Content -->
+        <div class="card col-8">
+          <h2><i data-lucide="edit-3"></i> 1. Campaign Message</h2>
+          <div class="input-group">
+            <label class="label">Invitation Message Content</label>
+            <textarea
+              id="messageInput"
+              placeholder="Type your message here... Use a professional tone to improve engagement."
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 12px; align-items: center">
+            <button onclick="saveMessage()" class="btn-primary">
+              <i data-lucide="save"></i> Save Message
+            </button>
+            <span
+              id="saveStatus"
+              style="
+                font-size: 13px;
+                color: var(--text-muted);
+                opacity: 0;
+                transition: opacity 0.3s;
+              "
+            >
+              <i
+                data-lucide="check"
+                style="width: 14px; height: 14px; vertical-align: middle"
+              ></i>
+              Saved successfully
+            </span>
+          </div>
+        </div>
+
+        <!-- 2. Automation Control -->
+        <div class="card col-4">
+          <h2><i data-lucide="zap"></i> 2. Control Center</h2>
+          <div class="status-grid" id="statusGrid">
+            <div class="status-item">
+              <span id="pendingCount" class="status-value val-pending">0</span>
+              <span class="status-label">Pending</span>
+            </div>
+          </div>
+          <div class="status-grid">
+            <div class="status-item">
+              <span id="sentCount" class="status-value val-sent">0</span>
+              <span class="status-label">Sent</span>
+            </div>
+            <div class="status-item">
+              <span id="failedCount" class="status-value val-failed">0</span>
+              <span class="status-label">Failed</span>
+            </div>
+          </div>
+
+          <div
+            style="
+              margin-top: 24px;
+              display: flex;
+              flex-direction: column;
+              gap: 12px;
+            "
+          >
+            <button
+              id="startBtn"
+              onclick="startSending()"
+              class="btn-primary"
+              style="width: 100%"
+              disabled
+            >
+              <i data-lucide="play"></i> Start Campaign
+            </button>
+            <button
+              id="stopBtn"
+              onclick="stopSending()"
+              class="btn-outline"
+              style="width: 100%"
+              disabled
+            >
+              <i data-lucide="square"></i> Stop Process
+            </button>
+          </div>
+        </div>
+
+        <!-- 3. Add Contacts -->
+        <div class="card col-12">
+          <h2><i data-lucide="users"></i> 3. Contact Management</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px">
+            <div>
+              <label class="label"
+                >Manual Entry (Comma or Newline Separated)</label
+              >
+              <textarea
+                id="manualInput"
+                style="height: 100px"
+                placeholder="Example: 8573867986, 9651861130"
+              ></textarea>
+              <button
+                onclick="addManual()"
+                class="btn-outline"
+                style="margin-top: 12px; width: 100%"
+              >
+                <i data-lucide="plus-circle"></i> Add to Queue
+              </button>
+            </div>
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+              "
+            >
+              <div>
+                <label class="label">Bulk Import (CSV)</label>
+                <input type="file" id="csvFile" accept=".csv" />
+                <p
+                  style="
+                    font-size: 11px;
+                    color: var(--text-muted);
+                    margin-top: 8px;
+                  "
+                >
+                  File should have a 'phone' or 'number' column.
+                </p>
+              </div>
+              <button
+                onclick="uploadCSV()"
+                class="btn-primary"
+                style="width: 100%"
+              >
+                <i data-lucide="upload-cloud"></i> Upload & Parse
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Live Logs -->
+        <div class="card col-12">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 20px;
+            "
+          >
+            <h2 style="margin-bottom: 0">
+              <i data-lucide="activity"></i> 4. Live Activity Monitor
+            </h2>
+            <div style="display: flex; gap: 10px">
+              <button
+                onclick="fetchLogs()"
+                class="btn-outline"
+                style="padding: 8px 16px"
+              >
+                <i data-lucide="refresh-cw"></i> Refresh
+              </button>
+              <button
+                onclick="clearLogs()"
+                class="btn-danger"
+                style="padding: 8px 16px"
+              >
+                <i data-lucide="trash-2"></i> Clear History
+              </button>
+            </div>
+          </div>
+          <div id="logs" class="log-container">
+            <div
+              style="
+                padding: 40px;
+                text-align: center;
+                color: var(--text-muted);
+              "
+            >
+              <i
+                data-lucide="database"
+                style="
+                  width: 40px;
+                  height: 40px;
+                  display: block;
+                  margin: 0 auto 12px;
+                "
+              ></i>
+              Waiting for activity...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Initialize Lucide Icons
+      lucide.createIcons();
+
+      async function updateStatus() {
+        try {
+          const res = await fetch("/status");
+          const status = await res.json();
+
+          // Update Counts
+          document.getElementById("pendingCount").innerText =
+            status.queue.pending;
+          document.getElementById("sentCount").innerText = status.queue.sent;
+          document.getElementById("failedCount").innerText =
+            status.queue.failed;
+
+          // Update Control Buttons
+          const isRunning = status.processor === "Running";
+          const hasPending = status.queue.pending > 0;
+
+          document.getElementById("startBtn").disabled =
+            isRunning || !hasPending;
+          document.getElementById("stopBtn").disabled = !isRunning;
+
+          // Update Badges
+          const waStatusBadge = document.getElementById("waStatusBadge");
+          if (status.whatsapp === "Initialized") {
+            waStatusBadge.innerText = "WhatsApp Online";
+            waStatusBadge.className = "status-badge status-connected";
+          } else {
+            waStatusBadge.innerText = "WhatsApp Offline";
+            waStatusBadge.className = "status-badge status-disconnected";
+          }
+
+          if (isRunning) {
+            waStatusBadge.innerText += " • Processing Campaign";
+            waStatusBadge.classList.add("status-running");
+          } else {
+            waStatusBadge.classList.remove("status-running");
+          }
+        } catch (err) {
+          console.error("Status update error:", err);
+        }
+      }
+
+      async function saveMessage() {
+        const message = document.getElementById("messageInput").value;
+        const res = await fetch("/set-message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+
+        const statusEl = document.getElementById("saveStatus");
+        statusEl.style.opacity = "1";
+        setTimeout(() => {
+          statusEl.style.opacity = "0";
+        }, 2000);
+
+        updateStatus();
+      }
+
+      async function addManual() {
+        const input = document.getElementById("manualInput").value;
+        if (!input.trim()) return;
+
+        const res = await fetch("/add-numbers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input }),
+        });
+        const data = await res.json();
+        document.getElementById("manualInput").value = "";
+        updateStatus();
+      }
+
+      async function uploadCSV() {
+        const fileInput = document.getElementById("csvFile");
+        if (fileInput.files.length === 0)
+          return alert("Please select a CSV file first.");
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        const res = await fetch("/upload-csv", {
+          method: "POST",
+          body: formData,
+        });
+        const data = await res.json();
+        fileInput.value = "";
+        updateStatus();
+      }
+
+      async function startSending() {
+        const res = await fetch("/start-sending", { method: "POST" });
+        const data = await res.json();
+        updateStatus();
+        fetchLogs();
+      }
+
+      async function stopSending() {
+        const res = await fetch("/stop-sending", { method: "POST" });
+        const data = await res.json();
+        updateStatus();
+      }
+
+      function formatTime(isoString) {
+        const d = new Date(isoString);
+        return d.toLocaleTimeString([], {
+          hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        });
+      }
+
+      async function fetchLogs() {
+        try {
+          const res = await fetch("/logs");
+          const logs = await res.json();
+          const logContainer = document.getElementById("logs");
+
+          if (logs.length === 0) {
+            logContainer.innerHTML = `<div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                        <i data-lucide="database" style="width: 40px; height: 40px; display: block; margin: 0 auto 12px;"></i>
+                        No activity recorded yet.
+                    </div>`;
+            lucide.createIcons();
+            return;
+          }
+
+          logContainer.innerHTML = logs
+            .reverse()
+            .map(
+              (log) => `
+                    <div class="log-entry">
+                        <span class="log-time">[${formatTime(log.timestamp)}]</span>
+                        <span class="log-status status-${log.status}">${log.status}</span>
+                        <span class="log-msg">Message attempted for: <strong>${log.phone}</strong></span>
+                    </div>
+                `,
+            )
+            .join("");
+        } catch (err) {
+          console.error("Log fetch error:", err);
+        }
+      }
+
+      async function clearLogs() {
+        if (
+          !confirm(
+            "Are you sure you want to clear all campaign history and logs?",
+          )
+        )
+          return;
+        const res = await fetch("/logs", { method: "DELETE" });
+        const data = await res.json();
+        fetchLogs();
+        updateStatus();
+      }
+
+      // Real-time updates
+      setInterval(updateStatus, 3000);
+      setInterval(fetchLogs, 5000);
+      updateStatus();
+      fetchLogs();
+    </script>
+  </body>
+</html>
