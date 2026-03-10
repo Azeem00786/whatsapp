@@ -19,7 +19,8 @@ class WhatsApp {
     this.browser = await puppeteer.launch({
       headless: config.PUPPETEER_HEADLESS,
       ignoreHTTPSErrors: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      defaultViewport: null,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--start-maximized"],
     });
 
     this.page = await this.browser.newPage();
